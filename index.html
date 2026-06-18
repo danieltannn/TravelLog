@@ -136,7 +136,7 @@ textarea.bulk{min-height:120px;font-size:13px;line-height:1.6;}
 .trip-status.Upcoming{background:rgba(10,132,255,.12);color:#60a5fa;border:1px solid rgba(10,132,255,.2);}
 .trip-status.Ongoing{background:rgba(76,175,80,.12);color:var(--green);border:1px solid rgba(76,175,80,.2);}
 .trip-status.Completed{background:rgba(85,85,85,.15);color:var(--t3);border:1px solid var(--border);}
-.trip-body{border-top:1px solid var(--border);padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.trip-body{border-top:1px solid var(--border);padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .trip-detail{background:var(--s2);border-radius:10px;padding:10px 12px;}
 .trip-detail-label{font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--t3);font-weight:600;margin-bottom:4px;}
 .trip-detail-val{font-size:13px;font-weight:600;color:var(--text);}
@@ -241,7 +241,7 @@ textarea.bulk{min-height:120px;font-size:13px;line-height:1.6;}
     </div>
     <div class="fg"><label class="fl">Gate</label><input class="fi" id="et-gate" placeholder="e.g. B12"></div>
     <div class="fg"><label class="fl">Hotel</label><input class="fi" id="et-hotel" placeholder="e.g. Park Hyatt Tokyo"></div>
-    <div class="fg"><label class="fl">Hotel Address</label><input class="fi" id="et-hoteladdr" placeholder="Address"></div>
+    <div class="fg"><label class="fl">Hotel Address</label><input class="fi" id="et-hoteladdr"></div>
     <div class="frow">
       <div class="fg"><label class="fl">Check In</label><input type="date" class="fi" id="et-checkin"></div>
       <div class="fg"><label class="fl">Check Out</label><input type="date" class="fi" id="et-checkout"></div>
@@ -261,9 +261,6 @@ textarea.bulk{min-height:120px;font-size:13px;line-height:1.6;}
   </div>
   <div class="ni" onclick="showScreen('trips',this)">
     <div class="ni-ic">✈️</div><div class="ni-lb">Trips</div>
-  </div>
-  <div class="ni" onclick="showScreen('stats',this)">
-    <div class="ni-ic">📊</div><div class="ni-lb">Stats</div>
   </div>
 </div>
 
@@ -495,6 +492,7 @@ function showScreen(name, el) {
   document.getElementById('screen-'+name).classList.add('active');
   if (el) el.classList.add('active');
   if (name === 'countries') { currentCountry = null; renderCountries(); }
+  if (name === 'trips') renderTrips();
 
 }
 
@@ -958,6 +956,18 @@ async function bulkImport() {
   showToast('✅ ' + added + ' places imported!');
 }
 
+// ===== INIT =====
+(async () => {
+  try {
+    await Promise.all([loadPlaces(), loadTrips()]);
+  } catch(e) {
+    setSync('error', 'Load failed — ' + e.message);
+    showToast('⚠️ Could not load: ' + e.message);
+  } finally {
+    document.getElementById('loadingScreen').style.display = 'none';
+    renderCountries();
+  }
+})();
 
 // ===== TRIPS =====
 const TRIPS_DB = 'acf4baecdf774f6baee400c713767d32';
@@ -975,13 +985,8 @@ async function loadTrips() {
       cursor = res.has_more ? res.next_cursor : undefined;
     } while (cursor);
     trips = all.map(pageToTrip).filter(t => t.name);
-    trips.sort((a, b) => {
-      const order = { Ongoing: 0, Upcoming: 1, Planning: 2, Completed: 3 };
-      return (order[a.status] ?? 4) - (order[b.status] ?? 4);
-    });
-  } catch(e) {
-    console.error('Trips load failed:', e);
-  }
+    trips.sort((a,b) => { const o={Ongoing:0,Upcoming:1,Planning:2,Completed:3}; return (o[a.status]??4)-(o[b.status]??4); });
+  } catch(e) { console.error('Trips load failed:', e); }
 }
 
 function pageToTrip(page) {
@@ -1035,83 +1040,59 @@ function tripToNotion(t) {
   return props;
 }
 
-function fmtDate(d) {
-  if (!d) return '–';
-  return new Date(d + 'T12:00:00').toLocaleDateString('en-SG', { day:'numeric', month:'short', year:'numeric' });
-}
 function fmtDateShort(d) {
-  if (!d) return '–';
+  if (!d) return '';
   return new Date(d + 'T12:00:00').toLocaleDateString('en-SG', { day:'numeric', month:'short' });
 }
 function daysUntil(d) {
   if (!d) return null;
-  const diff = Math.round((new Date(d + 'T12:00:00') - new Date()) / (1000*60*60*24));
-  return diff;
+  return Math.round((new Date(d + 'T12:00:00') - new Date()) / (1000*60*60*24));
 }
-function tripEmoji(status) {
-  return { Planning:'📋', Upcoming:'✈️', Ongoing:'🌏', Completed:'✅' }[status] || '✈️';
-}
-function tripBg(status) {
-  return { Planning:'rgba(245,197,24,.08)', Upcoming:'rgba(10,132,255,.08)', Ongoing:'rgba(76,175,80,.08)', Completed:'rgba(85,85,85,.08)' }[status] || 'var(--s2)';
-}
+function tripEmoji(s) { return {Planning:'📋',Upcoming:'✈️',Ongoing:'🌏',Completed:'✅'}[s]||'✈️'; }
+function tripBg(s) { return {Planning:'rgba(245,197,24,.08)',Upcoming:'rgba(10,132,255,.08)',Ongoing:'rgba(76,175,80,.08)',Completed:'rgba(85,85,85,.08)'}[s]||'var(--s2)'; }
 
 function renderTrips() {
   const container = document.getElementById('tripsContent');
   let html = '<div class="section-hdr"><div class="section-title">My Trips</div><button class="icon-btn" onclick="openAddTrip()">+ New Trip</button></div>';
-
   if (!trips.length) {
-    html += '<div class="empty"><div class="empty-ic">✈️</div><div class="empty-t">No trips yet</div><div class="empty-s">Tap "+ New Trip" to start planning your next adventure!</div></div>';
-    container.innerHTML = html;
-    return;
+    html += '<div class="empty"><div class="empty-ic">✈️</div><div class="empty-t">No trips yet</div><div class="empty-s">Tap "+ New Trip" to start planning!</div></div>';
+    container.innerHTML = html; return;
   }
-
   html += trips.map(t => {
     const days = daysUntil(t.startDate);
-    const daysStr = days !== null ? (days > 0 ? 'In ' + days + ' days' : days === 0 ? 'Today!' : Math.abs(days) + ' days ago') : '';
-    const duration = t.startDate && t.endDate ? Math.round((new Date(t.endDate+'T12:00:00') - new Date(t.startDate+'T12:00:00')) / (1000*60*60*24)) + ' nights' : '';
-
+    const daysStr = days !== null ? (days > 0 ? 'In '+days+' days' : days === 0 ? 'Today!' : Math.abs(days)+' days ago') : '';
+    const duration = t.startDate && t.endDate ? Math.round((new Date(t.endDate+'T12:00:00')-new Date(t.startDate+'T12:00:00'))/(1000*60*60*24))+' nights' : '';
+    const id = t.id;
     return '<div class="trip-card">'
-      + '<div class="trip-card-header">'
-      + '<div class="trip-icon" style="background:' + tripBg(t.status) + '">' + tripEmoji(t.status) + '</div>'
-      + '<div class="trip-info">'
-      + '<div class="trip-name">' + t.name + '</div>'
-      + '<div class="trip-dest">📍 ' + (t.destination || 'No destination set') + '</div>'
-      + '<div class="trip-dates">' + fmtDateShort(t.startDate) + (t.endDate ? ' → ' + fmtDateShort(t.endDate) : '') + (duration ? ' · ' + duration : '') + (daysStr ? ' · ' + daysStr : '') + '</div>'
-      + '</div>'
-      + '<div class="trip-status ' + t.status + '">' + t.status.toUpperCase() + '</div>'
-      + '</div>'
-
-      + '<div class="trip-body">'
-      // Flight
-      + '<div class="trip-detail" style="grid-column:1/-1;">'
-      + '<div class="trip-detail-label">✈️ Flight</div>'
-      + '<div class="trip-detail-val">' + (t.flightNumber || '–') + (t.flightRoute ? ' · ' + t.flightRoute : '') + '</div>'
-      + '<div class="trip-detail-sub">' + (t.flightDate ? fmtDateShort(t.flightDate) : '') + (t.departureTime ? ' · Dep ' + t.departureTime : '') + (t.arrivalTime ? ' → Arr ' + t.arrivalTime : '') + (t.terminal ? ' · ' + t.terminal : '') + (t.gate ? ' Gate ' + t.gate : '') + '</div>'
-      + '</div>'
-      // Hotel
-      + '<div class="trip-detail" style="grid-column:1/-1;">'
-      + '<div class="trip-detail-label">🏨 Hotel</div>'
-      + '<div class="trip-detail-val">' + (t.hotel || '–') + '</div>'
-      + '<div class="trip-detail-sub">' + (t.checkIn ? 'Check in ' + fmtDateShort(t.checkIn) : '') + (t.checkOut ? ' → ' + fmtDateShort(t.checkOut) : '') + (t.bookingRef ? ' · Ref: ' + t.bookingRef : '') + '</div>'
-      + '</div>'
-      // Budget
-      + '<div class="trip-detail"><div class="trip-detail-label">💰 Budget</div><div class="trip-detail-val">' + (t.budget ? 'S$' + (+t.budget).toLocaleString() : '–') + '</div></div>'
-      // Notes
-      + '<div class="trip-detail"><div class="trip-detail-label">📝 Notes</div><div class="trip-detail-val" style="font-size:11px;font-weight:400;color:var(--t2);">' + (t.notes || '–') + '</div></div>'
-      + '</div>'
-
-      + '<button class="trip-edit-btn" onclick="openEditTrip(\'' + t.id + '\')">Edit Trip Details</button>'
-      + '</div>';
+      +'<div class="trip-card-header">'
+      +'<div class="trip-icon" style="background:'+tripBg(t.status)+'">'+tripEmoji(t.status)+'</div>'
+      +'<div class="trip-info">'
+      +'<div class="trip-name">'+t.name+'</div>'
+      +'<div class="trip-dest">📍 '+(t.destination||'No destination')+'</div>'
+      +'<div class="trip-dates">'+fmtDateShort(t.startDate)+(t.endDate?' → '+fmtDateShort(t.endDate):'')+(duration?' · '+duration:'')+(daysStr?' · '+daysStr:'')+'</div>'
+      +'</div>'
+      +'<div class="trip-status '+t.status+'">'+t.status.toUpperCase()+'</div>'
+      +'</div>'
+      +'<div class="trip-body">'
+      +'<div class="trip-detail" style="grid-column:1/-1;"><div class="trip-detail-label">✈️ Flight</div>'
+      +'<div class="trip-detail-val">'+(t.flightNumber||'–')+(t.flightRoute?' · '+t.flightRoute:'')+'</div>'
+      +'<div class="trip-detail-sub">'+(t.flightDate?fmtDateShort(t.flightDate):'')+(t.departureTime?' · Dep '+t.departureTime:'')+(t.arrivalTime?' → Arr '+t.arrivalTime:'')+(t.terminal?' · '+t.terminal:'')+(t.gate?' Gate '+t.gate:'')+'</div>'
+      +'</div>'
+      +'<div class="trip-detail" style="grid-column:1/-1;"><div class="trip-detail-label">🏨 Hotel</div>'
+      +'<div class="trip-detail-val">'+(t.hotel||'–')+'</div>'
+      +'<div class="trip-detail-sub">'+(t.checkIn?'Check in '+fmtDateShort(t.checkIn):'')+(t.checkOut?' → '+fmtDateShort(t.checkOut):'')+(t.bookingRef?' · Ref: '+t.bookingRef:'')+'</div>'
+      +'</div>'
+      +'<div class="trip-detail"><div class="trip-detail-label">💰 Budget</div><div class="trip-detail-val">'+(t.budget?'S$'+(+t.budget).toLocaleString():'–')+'</div></div>'
+      +'<div class="trip-detail"><div class="trip-detail-label">📝 Notes</div><div class="trip-detail-val" style="font-size:11px;font-weight:400;color:var(--t2);">'+(t.notes||'–')+'</div></div>'
+      +'</div>'
+      +'<button class="trip-edit-btn" onclick="openEditTrip(\'' + id + '\')">Edit Trip Details</button>'
+      +'</div>';
   }).join('');
-
   container.innerHTML = html;
 }
 
 function openAddTrip() {
-  ['t-name','t-dest','t-start','t-end','t-budget','t-notes'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
-  });
+  ['t-name','t-dest','t-start','t-end','t-budget','t-notes'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('t-status').value = 'Planning';
   openModal('add-trip');
 }
@@ -1121,97 +1102,79 @@ async function saveTrip() {
   if (!name) { showToast('⚠️ Enter a trip name'); return; }
   const btn = document.getElementById('saveTripBtn');
   btn.textContent = 'Saving…'; btn.disabled = true;
-  const trip = {
-    name,
-    destination: document.getElementById('t-dest').value.trim(),
-    startDate: document.getElementById('t-start').value,
-    endDate: document.getElementById('t-end').value,
-    status: document.getElementById('t-status').value,
-    budget: document.getElementById('t-budget').value,
-    notes: document.getElementById('t-notes').value.trim(),
-    flightNumber:'', flightRoute:'', flightDate:'', departureTime:'', arrivalTime:'', terminal:'', gate:'', hotel:'', hotelAddress:'', checkIn:'', checkOut:'', bookingRef:''
-  };
+  const trip = { name, destination:document.getElementById('t-dest').value.trim(), startDate:document.getElementById('t-start').value, endDate:document.getElementById('t-end').value, status:document.getElementById('t-status').value, budget:document.getElementById('t-budget').value, notes:document.getElementById('t-notes').value.trim(), flightNumber:'',flightRoute:'',flightDate:'',departureTime:'',arrivalTime:'',terminal:'',gate:'',hotel:'',hotelAddress:'',checkIn:'',checkOut:'',bookingRef:'' };
   try {
-    setSync('syncing', 'Saving…');
-    const res = await notionRequest('/v1/pages', 'POST', { parent: { database_id: TRIPS_DB }, properties: tripToNotion(trip) });
+    setSync('syncing','Saving…');
+    const res = await notionRequest('/v1/pages','POST',{parent:{database_id:TRIPS_DB},properties:tripToNotion(trip)});
     trip.id = res.id;
     trips.push(trip);
-    trips.sort((a,b) => { const o={Ongoing:0,Upcoming:1,Planning:2,Completed:3}; return (o[a.status]??4)-(o[b.status]??4); });
-    setSync('synced', 'Saved · ' + new Date().toLocaleTimeString());
-    closeModal('add-trip');
-    renderTrips();
-    showToast('✅ Trip created!');
-  } catch(e) {
-    setSync('error', 'Save failed');
-    showToast('⚠️ ' + e.message);
-  }
-  btn.textContent = 'Create Trip'; btn.disabled = false;
+    trips.sort((a,b)=>{const o={Ongoing:0,Upcoming:1,Planning:2,Completed:3};return (o[a.status]??4)-(o[b.status]??4);});
+    setSync('synced','Saved · '+new Date().toLocaleTimeString());
+    closeModal('add-trip'); renderTrips(); showToast('✅ Trip created!');
+  } catch(e) { setSync('error','Save failed'); showToast('⚠️ '+e.message); }
+  btn.textContent='Create Trip'; btn.disabled=false;
 }
 
 function openEditTrip(id) {
   editingTripId = id;
-  const t = trips.find(x => x.id === id);
+  const t = trips.find(x=>x.id===id);
   if (!t) return;
-  document.getElementById('et-name').value = t.name;
-  document.getElementById('et-dest').value = t.destination;
-  document.getElementById('et-start').value = t.startDate;
-  document.getElementById('et-end').value = t.endDate;
-  document.getElementById('et-status').value = t.status;
-  document.getElementById('et-flightnum').value = t.flightNumber;
-  document.getElementById('et-flightroute').value = t.flightRoute;
-  document.getElementById('et-flightdate').value = t.flightDate;
-  document.getElementById('et-dep').value = t.departureTime;
-  document.getElementById('et-arr').value = t.arrivalTime;
-  document.getElementById('et-terminal').value = t.terminal;
-  document.getElementById('et-gate').value = t.gate;
-  document.getElementById('et-hotel').value = t.hotel;
-  document.getElementById('et-hoteladdr').value = t.hotelAddress;
-  document.getElementById('et-checkin').value = t.checkIn;
-  document.getElementById('et-checkout').value = t.checkOut;
-  document.getElementById('et-ref').value = t.bookingRef;
-  document.getElementById('et-budget').value = t.budget;
-  document.getElementById('et-notes').value = t.notes;
+  document.getElementById('et-name').value=t.name;
+  document.getElementById('et-dest').value=t.destination;
+  document.getElementById('et-start').value=t.startDate;
+  document.getElementById('et-end').value=t.endDate;
+  document.getElementById('et-status').value=t.status;
+  document.getElementById('et-flightnum').value=t.flightNumber;
+  document.getElementById('et-flightroute').value=t.flightRoute;
+  document.getElementById('et-flightdate').value=t.flightDate;
+  document.getElementById('et-dep').value=t.departureTime;
+  document.getElementById('et-arr').value=t.arrivalTime;
+  document.getElementById('et-terminal').value=t.terminal;
+  document.getElementById('et-gate').value=t.gate;
+  document.getElementById('et-hotel').value=t.hotel;
+  document.getElementById('et-hoteladdr').value=t.hotelAddress;
+  document.getElementById('et-checkin').value=t.checkIn;
+  document.getElementById('et-checkout').value=t.checkOut;
+  document.getElementById('et-ref').value=t.bookingRef;
+  document.getElementById('et-budget').value=t.budget;
+  document.getElementById('et-notes').value=t.notes;
   openModal('edit-trip');
 }
 
 async function saveEditTrip() {
   if (!editingTripId) return;
-  const t = trips.find(x => x.id === editingTripId);
+  const t = trips.find(x=>x.id===editingTripId);
   if (!t) return;
   const btn = document.getElementById('editTripBtn');
-  btn.textContent = 'Saving…'; btn.disabled = true;
-  t.name = document.getElementById('et-name').value.trim() || t.name;
-  t.destination = document.getElementById('et-dest').value.trim();
-  t.startDate = document.getElementById('et-start').value;
-  t.endDate = document.getElementById('et-end').value;
-  t.status = document.getElementById('et-status').value;
-  t.flightNumber = document.getElementById('et-flightnum').value.toUpperCase().trim();
-  t.flightRoute = document.getElementById('et-flightroute').value.trim();
-  t.flightDate = document.getElementById('et-flightdate').value;
-  t.departureTime = document.getElementById('et-dep').value;
-  t.arrivalTime = document.getElementById('et-arr').value;
-  t.terminal = document.getElementById('et-terminal').value.trim();
-  t.gate = document.getElementById('et-gate').value.trim();
-  t.hotel = document.getElementById('et-hotel').value.trim();
-  t.hotelAddress = document.getElementById('et-hoteladdr').value.trim();
-  t.checkIn = document.getElementById('et-checkin').value;
-  t.checkOut = document.getElementById('et-checkout').value;
-  t.bookingRef = document.getElementById('et-ref').value.toUpperCase().trim();
-  t.budget = document.getElementById('et-budget').value;
-  t.notes = document.getElementById('et-notes').value.trim();
+  btn.textContent='Saving…'; btn.disabled=true;
+  t.name=document.getElementById('et-name').value.trim()||t.name;
+  t.destination=document.getElementById('et-dest').value.trim();
+  t.startDate=document.getElementById('et-start').value;
+  t.endDate=document.getElementById('et-end').value;
+  t.status=document.getElementById('et-status').value;
+  t.flightNumber=document.getElementById('et-flightnum').value.toUpperCase().trim();
+  t.flightRoute=document.getElementById('et-flightroute').value.trim();
+  t.flightDate=document.getElementById('et-flightdate').value;
+  t.departureTime=document.getElementById('et-dep').value;
+  t.arrivalTime=document.getElementById('et-arr').value;
+  t.terminal=document.getElementById('et-terminal').value.trim();
+  t.gate=document.getElementById('et-gate').value.trim();
+  t.hotel=document.getElementById('et-hotel').value.trim();
+  t.hotelAddress=document.getElementById('et-hoteladdr').value.trim();
+  t.checkIn=document.getElementById('et-checkin').value;
+  t.checkOut=document.getElementById('et-checkout').value;
+  t.bookingRef=document.getElementById('et-ref').value.toUpperCase().trim();
+  t.budget=document.getElementById('et-budget').value;
+  t.notes=document.getElementById('et-notes').value.trim();
   try {
-    setSync('syncing', 'Saving…');
-    await notionRequest('/v1/pages/' + editingTripId, 'PATCH', { properties: tripToNotion(t) });
-    setSync('synced', 'Saved · ' + new Date().toLocaleTimeString());
+    setSync('syncing','Saving…');
+    await notionRequest('/v1/pages/'+editingTripId,'PATCH',{properties:tripToNotion(t)});
+    setSync('synced','Saved · '+new Date().toLocaleTimeString());
     closeModal('edit-trip');
-    trips.sort((a,b) => { const o={Ongoing:0,Upcoming:1,Planning:2,Completed:3}; return (o[a.status]??4)-(o[b.status]??4); });
-    renderTrips();
-    showToast('✅ Trip updated!');
-  } catch(e) {
-    setSync('error', 'Save failed');
-    showToast('⚠️ ' + e.message);
-  }
-  btn.textContent = 'Save Changes'; btn.disabled = false;
+    trips.sort((a,b)=>{const o={Ongoing:0,Upcoming:1,Planning:2,Completed:3};return (o[a.status]??4)-(o[b.status]??4);});
+    renderTrips(); showToast('✅ Trip updated!');
+  } catch(e) { setSync('error','Save failed'); showToast('⚠️ '+e.message); }
+  btn.textContent='Save Changes'; btn.disabled=false;
 }
 
 function deleteTripConfirm() {
@@ -1233,42 +1196,23 @@ function deleteTripConfirm() {
   noBtn.textContent = 'Cancel';
   noBtn.style.cssText = 'flex:1;padding:10px;background:var(--s3);color:var(--t2);border:1px solid var(--border2);border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;';
   noBtn.onclick = function() { row.remove(); };
-  btnRow.appendChild(yesBtn);
-  btnRow.appendChild(noBtn);
-  row.appendChild(label);
-  row.appendChild(btnRow);
+  btnRow.appendChild(yesBtn); btnRow.appendChild(noBtn);
+  row.appendChild(label); row.appendChild(btnRow);
   document.querySelector('#modal-edit-trip .modal').appendChild(row);
 }
 
 async function doDeleteTrip() {
   if (!editingTripId) return;
   try {
-    setSync('syncing', 'Deleting…');
-    await notionRequest('/v1/pages/' + editingTripId, 'PATCH', { archived: true });
-    trips = trips.filter(t => t.id !== editingTripId);
+    setSync('syncing','Deleting…');
+    await notionRequest('/v1/pages/'+editingTripId,'PATCH',{archived:true});
+    trips = trips.filter(t=>t.id!==editingTripId);
     editingTripId = null;
-    setSync('synced', 'Deleted');
-    closeModal('edit-trip');
-    renderTrips();
-    showToast('🗑️ Trip deleted');
-  } catch(e) {
-    setSync('error', 'Delete failed');
-    showToast('⚠️ ' + e.message);
-  }
+    setSync('synced','Deleted');
+    closeModal('edit-trip'); renderTrips(); showToast('🗑️ Trip deleted');
+  } catch(e) { setSync('error','Delete failed'); showToast('⚠️ '+e.message); }
 }
 
-// ===== INIT =====
-(async () => {
-  try {
-    await Promise.all([loadPlaces(), loadTrips()]);
-  } catch(e) {
-    setSync('error', 'Load failed — ' + e.message);
-    showToast('⚠️ Could not load: ' + e.message);
-  } finally {
-    document.getElementById('loadingScreen').style.display = 'none';
-    renderCountries();
-  }
-})();
 </script>
 </body>
 </html>
