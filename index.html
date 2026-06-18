@@ -123,6 +123,26 @@ textarea.bulk{min-height:120px;font-size:13px;line-height:1.6;}
 .nearby-label{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--accent2);margin-bottom:8px;}
 .nearby-dot{width:6px;height:6px;border-radius:50%;background:var(--accent2);flex-shrink:0;}
 .nearby-divider{height:1px;background:var(--border);margin:2px 14px 10px;}
+
+.trip-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);margin-bottom:12px;overflow:hidden;}
+.trip-card-header{padding:16px;display:flex;align-items:flex-start;gap:12px;}
+.trip-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.trip-info{flex:1;min-width:0;}
+.trip-name{font-size:16px;font-weight:700;letter-spacing:-.2px;}
+.trip-dest{font-size:12px;color:var(--t2);margin-top:2px;}
+.trip-dates{font-size:11px;color:var(--t3);margin-top:4px;}
+.trip-status{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;flex-shrink:0;letter-spacing:.3px;}
+.trip-status.Planning{background:rgba(245,197,24,.12);color:var(--gold);border:1px solid rgba(245,197,24,.2);}
+.trip-status.Upcoming{background:rgba(10,132,255,.12);color:#60a5fa;border:1px solid rgba(10,132,255,.2);}
+.trip-status.Ongoing{background:rgba(76,175,80,.12);color:var(--green);border:1px solid rgba(76,175,80,.2);}
+.trip-status.Completed{background:rgba(85,85,85,.15);color:var(--t3);border:1px solid var(--border);}
+.trip-body{border-top:1px solid var(--border);padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.trip-detail{background:var(--s2);border-radius:10px;padding:10px 12px;}
+.trip-detail-label{font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--t3);font-weight:600;margin-bottom:4px;}
+.trip-detail-val{font-size:13px;font-weight:600;color:var(--text);}
+.trip-detail-sub{font-size:11px;color:var(--t2);margin-top:2px;}
+.trip-edit-btn{display:block;width:100%;padding:11px;background:var(--s2);border:none;border-top:1px solid var(--border);color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:center;}
+.icon-btn{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px;color:var(--t2);cursor:pointer;font-family:inherit;}
 </style>
 </head>
 <body>
@@ -158,6 +178,81 @@ textarea.bulk{min-height:120px;font-size:13px;line-height:1.6;}
 </div>
 
 
+</div>
+
+<div class="screen" id="screen-trips">
+  <div id="tripsContent"></div>
+</div>
+
+<!-- ADD TRIP MODAL -->
+<div class="modal-overlay" id="modal-add-trip">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">✈️ New Trip</div>
+    <div class="fg"><label class="fl">Trip Name</label><input class="fi" id="t-name" placeholder="e.g. Japan 2025"></div>
+    <div class="fg"><label class="fl">Destination</label><input class="fi" id="t-dest" placeholder="e.g. Tokyo, Japan"></div>
+    <div class="frow">
+      <div class="fg"><label class="fl">Start Date</label><input type="date" class="fi" id="t-start"></div>
+      <div class="fg"><label class="fl">End Date</label><input type="date" class="fi" id="t-end"></div>
+    </div>
+    <div class="fg"><label class="fl">Status</label>
+      <select class="fi" id="t-status">
+        <option value="Planning">🟡 Planning</option>
+        <option value="Upcoming">🔵 Upcoming</option>
+        <option value="Ongoing">🟢 Ongoing</option>
+        <option value="Completed">⚫ Completed</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Budget (SGD)</label><input type="number" class="fi" id="t-budget" placeholder="e.g. 3000"></div>
+    <div class="fg"><label class="fl">Notes</label><textarea class="fi" id="t-notes" rows="2" placeholder="Any notes…"></textarea></div>
+    <button class="btn btn-p" id="saveTripBtn" onclick="saveTrip()">Create Trip</button>
+    <button class="btn btn-s" onclick="closeModal('add-trip')">Cancel</button>
+  </div>
+</div>
+
+<!-- EDIT TRIP MODAL -->
+<div class="modal-overlay" id="modal-edit-trip">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Edit Trip</div>
+    <div class="fg"><label class="fl">Trip Name</label><input class="fi" id="et-name"></div>
+    <div class="fg"><label class="fl">Destination</label><input class="fi" id="et-dest"></div>
+    <div class="frow">
+      <div class="fg"><label class="fl">Start Date</label><input type="date" class="fi" id="et-start"></div>
+      <div class="fg"><label class="fl">End Date</label><input type="date" class="fi" id="et-end"></div>
+    </div>
+    <div class="fg"><label class="fl">Status</label>
+      <select class="fi" id="et-status">
+        <option value="Planning">🟡 Planning</option>
+        <option value="Upcoming">🔵 Upcoming</option>
+        <option value="Ongoing">🟢 Ongoing</option>
+        <option value="Completed">⚫ Completed</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Flight Number</label><input class="fi" id="et-flightnum" placeholder="e.g. SQ321" style="text-transform:uppercase;"></div>
+    <div class="fg"><label class="fl">Flight Route</label><input class="fi" id="et-flightroute" placeholder="e.g. SIN → NRT"></div>
+    <div class="frow">
+      <div class="fg"><label class="fl">Flight Date</label><input type="date" class="fi" id="et-flightdate"></div>
+      <div class="fg"><label class="fl">Terminal</label><input class="fi" id="et-terminal" placeholder="e.g. T1"></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label class="fl">Departure</label><input type="time" class="fi" id="et-dep"></div>
+      <div class="fg"><label class="fl">Arrival</label><input type="time" class="fi" id="et-arr"></div>
+    </div>
+    <div class="fg"><label class="fl">Gate</label><input class="fi" id="et-gate" placeholder="e.g. B12"></div>
+    <div class="fg"><label class="fl">Hotel</label><input class="fi" id="et-hotel" placeholder="e.g. Park Hyatt Tokyo"></div>
+    <div class="fg"><label class="fl">Hotel Address</label><input class="fi" id="et-hoteladdr" placeholder="Address"></div>
+    <div class="frow">
+      <div class="fg"><label class="fl">Check In</label><input type="date" class="fi" id="et-checkin"></div>
+      <div class="fg"><label class="fl">Check Out</label><input type="date" class="fi" id="et-checkout"></div>
+    </div>
+    <div class="fg"><label class="fl">Booking Ref</label><input class="fi" id="et-ref" placeholder="e.g. ABC123" style="text-transform:uppercase;"></div>
+    <div class="fg"><label class="fl">Budget (SGD)</label><input type="number" class="fi" id="et-budget"></div>
+    <div class="fg"><label class="fl">Notes</label><textarea class="fi" id="et-notes" rows="2"></textarea></div>
+    <button class="btn btn-p" id="editTripBtn" onclick="saveEditTrip()">Save Changes</button>
+    <button class="btn btn-red" onclick="deleteTripConfirm()">Delete Trip</button>
+    <button class="btn btn-s" onclick="closeModal('edit-trip')">Cancel</button>
+  </div>
 </div>
 
 <div class="bnav">
@@ -858,10 +953,309 @@ async function bulkImport() {
   showToast('✅ ' + added + ' places imported!');
 }
 
+
+// ===== TRIPS =====
+const TRIPS_DB = 'acf4baecdf774f6baee400c713767d32';
+let trips = [];
+let editingTripId = null;
+
+async function loadTrips() {
+  try {
+    let all = [], cursor;
+    do {
+      const body = { page_size: 100 };
+      if (cursor) body.start_cursor = cursor;
+      const res = await notionRequest('/v1/databases/' + TRIPS_DB + '/query', 'POST', body);
+      all = all.concat(res.results);
+      cursor = res.has_more ? res.next_cursor : undefined;
+    } while (cursor);
+    trips = all.map(pageToTrip).filter(t => t.name);
+    trips.sort((a, b) => {
+      const order = { Ongoing: 0, Upcoming: 1, Planning: 2, Completed: 3 };
+      return (order[a.status] ?? 4) - (order[b.status] ?? 4);
+    });
+  } catch(e) {
+    console.error('Trips load failed:', e);
+  }
+}
+
+function pageToTrip(page) {
+  const p = page.properties;
+  return {
+    id: page.id,
+    name: p.Name?.title?.[0]?.plain_text || '',
+    destination: p.Destination?.rich_text?.[0]?.plain_text || '',
+    startDate: p['Start Date']?.date?.start || '',
+    endDate: p['End Date']?.date?.start || '',
+    status: p.Status?.select?.name || 'Planning',
+    flightNumber: p['Flight Number']?.rich_text?.[0]?.plain_text || '',
+    flightRoute: p['Flight Route']?.rich_text?.[0]?.plain_text || '',
+    flightDate: p['Flight Date']?.date?.start || '',
+    departureTime: p['Departure Time']?.rich_text?.[0]?.plain_text || '',
+    arrivalTime: p['Arrival Time']?.rich_text?.[0]?.plain_text || '',
+    terminal: p.Terminal?.rich_text?.[0]?.plain_text || '',
+    gate: p.Gate?.rich_text?.[0]?.plain_text || '',
+    hotel: p.Hotel?.rich_text?.[0]?.plain_text || '',
+    hotelAddress: p['Hotel Address']?.rich_text?.[0]?.plain_text || '',
+    checkIn: p['Check In']?.date?.start || '',
+    checkOut: p['Check Out']?.date?.start || '',
+    bookingRef: p['Booking Ref']?.rich_text?.[0]?.plain_text || '',
+    budget: p.Budget?.number || 0,
+    notes: p.Notes?.rich_text?.[0]?.plain_text || ''
+  };
+}
+
+function tripToNotion(t) {
+  const props = {
+    Name: { title: [{ text: { content: t.name } }] },
+    Destination: { rich_text: [{ text: { content: t.destination || '' } }] },
+    Status: { select: { name: t.status || 'Planning' } },
+    'Flight Number': { rich_text: [{ text: { content: t.flightNumber || '' } }] },
+    'Flight Route': { rich_text: [{ text: { content: t.flightRoute || '' } }] },
+    'Departure Time': { rich_text: [{ text: { content: t.departureTime || '' } }] },
+    'Arrival Time': { rich_text: [{ text: { content: t.arrivalTime || '' } }] },
+    Terminal: { rich_text: [{ text: { content: t.terminal || '' } }] },
+    Gate: { rich_text: [{ text: { content: t.gate || '' } }] },
+    Hotel: { rich_text: [{ text: { content: t.hotel || '' } }] },
+    'Hotel Address': { rich_text: [{ text: { content: t.hotelAddress || '' } }] },
+    'Booking Ref': { rich_text: [{ text: { content: t.bookingRef || '' } }] },
+    Budget: { number: t.budget ? +t.budget : null },
+    Notes: { rich_text: [{ text: { content: t.notes || '' } }] }
+  };
+  if (t.startDate) props['Start Date'] = { date: { start: t.startDate } };
+  if (t.endDate) props['End Date'] = { date: { start: t.endDate } };
+  if (t.flightDate) props['Flight Date'] = { date: { start: t.flightDate } };
+  if (t.checkIn) props['Check In'] = { date: { start: t.checkIn } };
+  if (t.checkOut) props['Check Out'] = { date: { start: t.checkOut } };
+  return props;
+}
+
+function fmtDate(d) {
+  if (!d) return '–';
+  return new Date(d + 'T12:00:00').toLocaleDateString('en-SG', { day:'numeric', month:'short', year:'numeric' });
+}
+function fmtDateShort(d) {
+  if (!d) return '–';
+  return new Date(d + 'T12:00:00').toLocaleDateString('en-SG', { day:'numeric', month:'short' });
+}
+function daysUntil(d) {
+  if (!d) return null;
+  const diff = Math.round((new Date(d + 'T12:00:00') - new Date()) / (1000*60*60*24));
+  return diff;
+}
+function tripEmoji(status) {
+  return { Planning:'📋', Upcoming:'✈️', Ongoing:'🌏', Completed:'✅' }[status] || '✈️';
+}
+function tripBg(status) {
+  return { Planning:'rgba(245,197,24,.08)', Upcoming:'rgba(10,132,255,.08)', Ongoing:'rgba(76,175,80,.08)', Completed:'rgba(85,85,85,.08)' }[status] || 'var(--s2)';
+}
+
+function renderTrips() {
+  const container = document.getElementById('tripsContent');
+  let html = '<div class="section-hdr"><div class="section-title">My Trips</div><button class="icon-btn" onclick="openAddTrip()">+ New Trip</button></div>';
+
+  if (!trips.length) {
+    html += '<div class="empty"><div class="empty-ic">✈️</div><div class="empty-t">No trips yet</div><div class="empty-s">Tap "+ New Trip" to start planning your next adventure!</div></div>';
+    container.innerHTML = html;
+    return;
+  }
+
+  html += trips.map(t => {
+    const days = daysUntil(t.startDate);
+    const daysStr = days !== null ? (days > 0 ? 'In ' + days + ' days' : days === 0 ? 'Today!' : Math.abs(days) + ' days ago') : '';
+    const duration = t.startDate && t.endDate ? Math.round((new Date(t.endDate+'T12:00:00') - new Date(t.startDate+'T12:00:00')) / (1000*60*60*24)) + ' nights' : '';
+
+    return '<div class="trip-card">'
+      + '<div class="trip-card-header">'
+      + '<div class="trip-icon" style="background:' + tripBg(t.status) + '">' + tripEmoji(t.status) + '</div>'
+      + '<div class="trip-info">'
+      + '<div class="trip-name">' + t.name + '</div>'
+      + '<div class="trip-dest">📍 ' + (t.destination || 'No destination set') + '</div>'
+      + '<div class="trip-dates">' + fmtDateShort(t.startDate) + (t.endDate ? ' → ' + fmtDateShort(t.endDate) : '') + (duration ? ' · ' + duration : '') + (daysStr ? ' · ' + daysStr : '') + '</div>'
+      + '</div>'
+      + '<div class="trip-status ' + t.status + '">' + t.status.toUpperCase() + '</div>'
+      + '</div>'
+
+      + '<div class="trip-body">'
+      // Flight
+      + '<div class="trip-detail" style="grid-column:1/-1;">'
+      + '<div class="trip-detail-label">✈️ Flight</div>'
+      + '<div class="trip-detail-val">' + (t.flightNumber || '–') + (t.flightRoute ? ' · ' + t.flightRoute : '') + '</div>'
+      + '<div class="trip-detail-sub">' + (t.flightDate ? fmtDateShort(t.flightDate) : '') + (t.departureTime ? ' · Dep ' + t.departureTime : '') + (t.arrivalTime ? ' → Arr ' + t.arrivalTime : '') + (t.terminal ? ' · ' + t.terminal : '') + (t.gate ? ' Gate ' + t.gate : '') + '</div>'
+      + '</div>'
+      // Hotel
+      + '<div class="trip-detail" style="grid-column:1/-1;">'
+      + '<div class="trip-detail-label">🏨 Hotel</div>'
+      + '<div class="trip-detail-val">' + (t.hotel || '–') + '</div>'
+      + '<div class="trip-detail-sub">' + (t.checkIn ? 'Check in ' + fmtDateShort(t.checkIn) : '') + (t.checkOut ? ' → ' + fmtDateShort(t.checkOut) : '') + (t.bookingRef ? ' · Ref: ' + t.bookingRef : '') + '</div>'
+      + '</div>'
+      // Budget
+      + '<div class="trip-detail"><div class="trip-detail-label">💰 Budget</div><div class="trip-detail-val">' + (t.budget ? 'S$' + (+t.budget).toLocaleString() : '–') + '</div></div>'
+      // Notes
+      + '<div class="trip-detail"><div class="trip-detail-label">📝 Notes</div><div class="trip-detail-val" style="font-size:11px;font-weight:400;color:var(--t2);">' + (t.notes || '–') + '</div></div>'
+      + '</div>'
+
+      + '<button class="trip-edit-btn" onclick="openEditTrip(\'' + t.id + '\')">Edit Trip Details</button>'
+      + '</div>';
+  }).join('');
+
+  container.innerHTML = html;
+}
+
+function openAddTrip() {
+  ['t-name','t-dest','t-start','t-end','t-budget','t-notes'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('t-status').value = 'Planning';
+  openModal('add-trip');
+}
+
+async function saveTrip() {
+  const name = document.getElementById('t-name').value.trim();
+  if (!name) { showToast('⚠️ Enter a trip name'); return; }
+  const btn = document.getElementById('saveTripBtn');
+  btn.textContent = 'Saving…'; btn.disabled = true;
+  const trip = {
+    name,
+    destination: document.getElementById('t-dest').value.trim(),
+    startDate: document.getElementById('t-start').value,
+    endDate: document.getElementById('t-end').value,
+    status: document.getElementById('t-status').value,
+    budget: document.getElementById('t-budget').value,
+    notes: document.getElementById('t-notes').value.trim(),
+    flightNumber:'', flightRoute:'', flightDate:'', departureTime:'', arrivalTime:'', terminal:'', gate:'', hotel:'', hotelAddress:'', checkIn:'', checkOut:'', bookingRef:''
+  };
+  try {
+    setSync('syncing', 'Saving…');
+    const res = await notionRequest('/v1/pages', 'POST', { parent: { database_id: TRIPS_DB }, properties: tripToNotion(trip) });
+    trip.id = res.id;
+    trips.push(trip);
+    trips.sort((a,b) => { const o={Ongoing:0,Upcoming:1,Planning:2,Completed:3}; return (o[a.status]??4)-(o[b.status]??4); });
+    setSync('synced', 'Saved · ' + new Date().toLocaleTimeString());
+    closeModal('add-trip');
+    renderTrips();
+    showToast('✅ Trip created!');
+  } catch(e) {
+    setSync('error', 'Save failed');
+    showToast('⚠️ ' + e.message);
+  }
+  btn.textContent = 'Create Trip'; btn.disabled = false;
+}
+
+function openEditTrip(id) {
+  editingTripId = id;
+  const t = trips.find(x => x.id === id);
+  if (!t) return;
+  document.getElementById('et-name').value = t.name;
+  document.getElementById('et-dest').value = t.destination;
+  document.getElementById('et-start').value = t.startDate;
+  document.getElementById('et-end').value = t.endDate;
+  document.getElementById('et-status').value = t.status;
+  document.getElementById('et-flightnum').value = t.flightNumber;
+  document.getElementById('et-flightroute').value = t.flightRoute;
+  document.getElementById('et-flightdate').value = t.flightDate;
+  document.getElementById('et-dep').value = t.departureTime;
+  document.getElementById('et-arr').value = t.arrivalTime;
+  document.getElementById('et-terminal').value = t.terminal;
+  document.getElementById('et-gate').value = t.gate;
+  document.getElementById('et-hotel').value = t.hotel;
+  document.getElementById('et-hoteladdr').value = t.hotelAddress;
+  document.getElementById('et-checkin').value = t.checkIn;
+  document.getElementById('et-checkout').value = t.checkOut;
+  document.getElementById('et-ref').value = t.bookingRef;
+  document.getElementById('et-budget').value = t.budget;
+  document.getElementById('et-notes').value = t.notes;
+  openModal('edit-trip');
+}
+
+async function saveEditTrip() {
+  if (!editingTripId) return;
+  const t = trips.find(x => x.id === editingTripId);
+  if (!t) return;
+  const btn = document.getElementById('editTripBtn');
+  btn.textContent = 'Saving…'; btn.disabled = true;
+  t.name = document.getElementById('et-name').value.trim() || t.name;
+  t.destination = document.getElementById('et-dest').value.trim();
+  t.startDate = document.getElementById('et-start').value;
+  t.endDate = document.getElementById('et-end').value;
+  t.status = document.getElementById('et-status').value;
+  t.flightNumber = document.getElementById('et-flightnum').value.toUpperCase().trim();
+  t.flightRoute = document.getElementById('et-flightroute').value.trim();
+  t.flightDate = document.getElementById('et-flightdate').value;
+  t.departureTime = document.getElementById('et-dep').value;
+  t.arrivalTime = document.getElementById('et-arr').value;
+  t.terminal = document.getElementById('et-terminal').value.trim();
+  t.gate = document.getElementById('et-gate').value.trim();
+  t.hotel = document.getElementById('et-hotel').value.trim();
+  t.hotelAddress = document.getElementById('et-hoteladdr').value.trim();
+  t.checkIn = document.getElementById('et-checkin').value;
+  t.checkOut = document.getElementById('et-checkout').value;
+  t.bookingRef = document.getElementById('et-ref').value.toUpperCase().trim();
+  t.budget = document.getElementById('et-budget').value;
+  t.notes = document.getElementById('et-notes').value.trim();
+  try {
+    setSync('syncing', 'Saving…');
+    await notionRequest('/v1/pages/' + editingTripId, 'PATCH', { properties: tripToNotion(t) });
+    setSync('synced', 'Saved · ' + new Date().toLocaleTimeString());
+    closeModal('edit-trip');
+    trips.sort((a,b) => { const o={Ongoing:0,Upcoming:1,Planning:2,Completed:3}; return (o[a.status]??4)-(o[b.status]??4); });
+    renderTrips();
+    showToast('✅ Trip updated!');
+  } catch(e) {
+    setSync('error', 'Save failed');
+    showToast('⚠️ ' + e.message);
+  }
+  btn.textContent = 'Save Changes'; btn.disabled = false;
+}
+
+function deleteTripConfirm() {
+  const existing = document.getElementById('del-trip-confirm');
+  if (existing) { existing.remove(); return; }
+  const row = document.createElement('div');
+  row.id = 'del-trip-confirm';
+  row.style.cssText = 'background:rgba(255,69,58,.1);border:1px solid rgba(255,69,58,.3);border-radius:12px;padding:14px;margin-top:10px;text-align:center;';
+  const label = document.createElement('div');
+  label.style.cssText = 'font-size:13px;color:#ff453a;font-weight:600;margin-bottom:10px;';
+  label.textContent = 'Delete this trip?';
+  const btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display:flex;gap:8px;';
+  const yesBtn = document.createElement('button');
+  yesBtn.textContent = 'Yes, delete';
+  yesBtn.style.cssText = 'flex:1;padding:10px;background:#ff453a;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;';
+  yesBtn.onclick = doDeleteTrip;
+  const noBtn = document.createElement('button');
+  noBtn.textContent = 'Cancel';
+  noBtn.style.cssText = 'flex:1;padding:10px;background:var(--s3);color:var(--t2);border:1px solid var(--border2);border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;';
+  noBtn.onclick = function() { row.remove(); };
+  btnRow.appendChild(yesBtn);
+  btnRow.appendChild(noBtn);
+  row.appendChild(label);
+  row.appendChild(btnRow);
+  document.querySelector('#modal-edit-trip .modal').appendChild(row);
+}
+
+async function doDeleteTrip() {
+  if (!editingTripId) return;
+  try {
+    setSync('syncing', 'Deleting…');
+    await notionRequest('/v1/pages/' + editingTripId, 'PATCH', { archived: true });
+    trips = trips.filter(t => t.id !== editingTripId);
+    editingTripId = null;
+    setSync('synced', 'Deleted');
+    closeModal('edit-trip');
+    renderTrips();
+    showToast('🗑️ Trip deleted');
+  } catch(e) {
+    setSync('error', 'Delete failed');
+    showToast('⚠️ ' + e.message);
+  }
+}
+
 // ===== INIT =====
 (async () => {
   try {
-    await loadPlaces();
+    await Promise.all([loadPlaces(), loadTrips()]);
   } catch(e) {
     setSync('error', 'Load failed — ' + e.message);
     showToast('⚠️ Could not load: ' + e.message);
